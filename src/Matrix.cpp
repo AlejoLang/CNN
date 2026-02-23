@@ -37,6 +37,16 @@ Matrix<T>::Matrix(const Matrix<T>& other) {
 }
 
 template <typename T>
+Matrix<T>::Matrix(Matrix<T>&& other) noexcept {
+  this->numRows = other.numRows;
+  this->numCols = other.numCols;
+  this->values = other.values;
+  other.values = nullptr;
+  other.numRows = 0;
+  other.numCols = 0;
+}
+
+template <typename T>
 int Matrix<T>::getNumCols() {
   return this->numCols;
 }

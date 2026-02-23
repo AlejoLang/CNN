@@ -13,6 +13,7 @@ public:
   Matrix(int c, int r);
   Matrix(std::vector<T> vals, int cols);
   Matrix(const Matrix<T>& other);
+  Matrix(Matrix<T>&& other) noexcept;
   int getNumCols();
   int getNumRows();
   T* getValues();
