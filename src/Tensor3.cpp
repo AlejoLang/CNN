@@ -2,6 +2,14 @@
 #include <stdexcept>
 
 template <typename T>
+Tensor3<T>::Tensor3() {
+  this->w = 0;
+  this->h = 0;
+  this->c = 0;
+  this->values = nullptr;
+}
+
+template <typename T>
 Tensor3<T>::Tensor3(int width, int height, int channels) {
   this->w = width;
   this->h = height;
@@ -56,5 +64,7 @@ Tensor3<T> Tensor3<T>::operator+(const Tensor3<T>& t) {
 
 template <typename T>
 Tensor3<T>::~Tensor3() {
-  delete[] this->values;
+  if (this->values != nullptr) {
+    delete[] this->values;
+  }
 }

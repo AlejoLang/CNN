@@ -7,6 +7,7 @@ private:
   T* values;
 
 public:
+  Tensor3();
   Tensor3(int width, int height, int channels);
   int getWidth();
   int getHeight();
