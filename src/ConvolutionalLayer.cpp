@@ -8,6 +8,7 @@ ConvolutionalLayer::ConvolutionalLayer(int filterSize, int filterDepth, int filt
     Tensor3<float> newT = Tensor3<float>(filterSize, filterSize, filterDepth);
     filters.push_back(newT);
   }
+  this->biases = Tensor3<float>(1, 1, filterCount);
 }
 
 Tensor3<float> ConvolutionalLayer::forward(Tensor3<float> input) {
@@ -35,7 +36,7 @@ Tensor3<float> ConvolutionalLayer::forward(Tensor3<float> input) {
     int row = std::floor(y / slidesW);
     int col = y % slidesW;
     for (size_t x = 0; x < featureMat.getNumCols(); x++) {
-      float value = featureMat.getValue(x, y);
+      float value = featureMat.getValue(x, y) + this->biases.getValue(col, row, x);
       featureTens.setValue(col, row, x, value);
     }
   }

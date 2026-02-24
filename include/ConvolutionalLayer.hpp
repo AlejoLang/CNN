@@ -8,6 +8,7 @@ private:
   int filterSize;
   int filterDepth;
   std::vector<Tensor3<float>> filters;
+  Tensor3<float> biases;
 
 public:
   ConvolutionalLayer(int filterSize, int filterDepth, int filterCount);
