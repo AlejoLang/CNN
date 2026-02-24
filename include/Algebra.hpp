@@ -12,3 +12,6 @@ Matrix<T> transpose(Matrix<T> m);
 // Apply a function to every element of a matrix
 template <typename T>
 Matrix<T> apply(Matrix<T> m, T (*function)(T));
+
+template <typename T>
+Matrix<T> im2col(Tensor3<T> input, int filterSize, int filterDepth);

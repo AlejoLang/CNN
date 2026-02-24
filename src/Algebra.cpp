@@ -1,4 +1,6 @@
 #include <Algebra.hpp>
+#include <Matrix.hpp>
+#include <Tensor3.hpp>
 #include <stdexcept>
 
 template <typename T>
@@ -42,6 +44,30 @@ Matrix<T> apply(Matrix<T> m, T (*function)(T)) {
   return result;
 }
 
+template <typename T>
+Matrix<T> im2col(Tensor3<T> input, int filterSize, int filterDepth) {
+  int slidesW = input.getWidth() - filterSize + 1;
+  int slidesH = input.getHeight() - filterSize + 1;
+  Matrix<T> flatInput(filterSize * filterSize * filterDepth, slidesH * slidesW);
+  for (size_t c = 0; c < filterDepth; c++) {
+    int rowBase = c * filterSize * filterSize;
+    for (size_t y = 0; y < slidesH; y++) {
+      for (size_t x = 0; x < slidesW; x++) {
+        int col = y * slidesW + x;
+        for (size_t filY = 0; filY < filterSize; filY++) {
+          int rowBaseY = rowBase + filY * filterSize;
+          for (size_t filX = 0; filX < filterSize; filX++) {
+            T val = input.getValue(x + filX, y + filY, c);
+            flatInput.setValue(rowBaseY + filX, col, val);
+          }
+        }
+      }
+    }
+  }
+
+  return flatInput;
+}
+
 // Explicit template instantiations
 template Matrix<int> cross(Matrix<int> m1, Matrix<int> m2);
 template Matrix<float> cross(Matrix<float> m1, Matrix<float> m2);
@@ -52,3 +78,6 @@ template Matrix<double> transpose(Matrix<double> m);
 template Matrix<int> apply(Matrix<int> m, int (*function)(int));
 template Matrix<float> apply(Matrix<float> m, float (*function)(float));
 template Matrix<double> apply(Matrix<double> m, double (*function)(double));
+template Matrix<int> im2col(Tensor3<int> input, int filterSize, int filterDepth);
+template Matrix<float> im2col(Tensor3<float> input, int filterSize, int filterDepth);
+template Matrix<double> im2col(Tensor3<double> input, int filterSize, int filterDepth);
