@@ -1,9 +1,16 @@
+#include <Activations.hpp>
 #include <Algebra.hpp>
 #include <ConvolutionalLayer.hpp>
 #include <Matrix.hpp>
 #include <cmath>
 
-ConvolutionalLayer::ConvolutionalLayer(int filterSize, int filterDepth, int filterCount) {
+ConvolutionalLayer::ConvolutionalLayer(int filterSize, int filterDepth, int filterCount,
+                                       ActivationFunction activation)
+    : Layer(activation) {
+  this->activation = activation;
+  this->filterSize = filterSize;
+  this->filterDepth = filterDepth;
+  this->filterCount = filterCount;
   for (size_t i = 0; i < filterCount; i++) {
     Tensor3<float> newT = Tensor3<float>(filterSize, filterSize, filterDepth);
     filters.push_back(newT);
@@ -37,6 +44,11 @@ Tensor3<float> ConvolutionalLayer::forward(Tensor3<float> input) {
     int col = y % slidesW;
     for (size_t x = 0; x < featureMat.getNumCols(); x++) {
       float value = featureMat.getValue(x, y) + this->biases.getValue(col, row, x);
+      if (this->activation == RELU) {
+        value = relu(value);
+      } else if (this->activation == SIGMOID) {
+        value = sigmoid(value);
+      }
       featureTens.setValue(col, row, x, value);
     }
   }

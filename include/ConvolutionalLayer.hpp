@@ -1,4 +1,5 @@
 #pragma once
+#include <Activations.hpp>
 #include <Layer.hpp>
 #include <vector>
 
@@ -11,6 +12,7 @@ private:
   Tensor3<float> biases;
 
 public:
-  ConvolutionalLayer(int filterSize, int filterDepth, int filterCount);
+  ConvolutionalLayer(int filterSize, int filterDepth, int filterCount,
+                     ActivationFunction activation = RELU);
   Tensor3<float> forward(Tensor3<float> input) override;
 };
