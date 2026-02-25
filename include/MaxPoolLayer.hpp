@@ -6,7 +6,7 @@ class MaxPoolLayer : public Layer {
 private:
   int poolSize;
   int poolDepth;
-  std::vector<std::vector<int>> maxIndices;
+  std::vector<std::vector<int>> maxIndexes;
 
 public:
   MaxPoolLayer(int size, int depth);

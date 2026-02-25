@@ -10,8 +10,9 @@ Tensor3<float> MaxPoolLayer::forward(Tensor3<float> input) {
   int slidesW = input.getWidth() / this->poolSize;
   int slidesH = input.getHeight() / this->poolSize;
   Tensor3<float> output = Tensor3<float>(slidesW, slidesH, this->poolDepth);
+  this->maxIndexes.clear();
   for (size_t c = 0; c < this->poolDepth; c++) {
-    this->maxIndices.push_back(std::vector<int>());
+    this->maxIndexes.push_back(std::vector<int>());
     for (size_t y = 0; y < slidesH; y++) {
       for (size_t x = 0; x < slidesW; x++) {
         float maxVal = -MAXFLOAT;
@@ -23,12 +24,12 @@ Tensor3<float> MaxPoolLayer::forward(Tensor3<float> input) {
             float val = input.getValue(inX, inY, c);
             if (val > maxVal) {
               maxVal = val;
-              maxDisplacement = poolY * input.getWidth() + poolX;
+              maxDisplacement = poolY * this->poolSize + poolX;
             }
           }
         }
         output.setValue(x, y, c, maxVal);
-        this->maxIndices[c].push_back(maxDisplacement);
+        this->maxIndexes[c].push_back(maxDisplacement);
       }
     }
   }
@@ -42,7 +43,7 @@ Tensor3<float> MaxPoolLayer::backwards(Tensor3<float> deltas) {
     for (size_t y = 0; y < deltas.getHeight(); y++) {
       for (size_t x = 0; x < deltas.getWidth(); x++) {
         float delta = deltas.getValue(x, y, c);
-        int maxIndex = this->maxIndices[c][y * deltas.getWidth() + x];
+        int maxIndex = this->maxIndexes[c][y * deltas.getWidth() + x];
         int poolY = maxIndex / this->poolSize;
         int poolX = maxIndex % this->poolSize;
         int outY = y * this->poolSize + poolY;
