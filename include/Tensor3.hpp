@@ -17,5 +17,6 @@ public:
   T getValue(int x, int y, int z);
   void setValue(int x, int y, int z, T value);
   Tensor3<T> operator+(const Tensor3<T>& t);
+  Tensor3<T> operator-(const Tensor3<T>& t);
   ~Tensor3();
 };

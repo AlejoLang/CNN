@@ -14,7 +14,7 @@ Tensor3<T>::Tensor3(int width, int height, int channels) {
   this->w = width;
   this->h = height;
   this->c = channels;
-  this->values = new T[width * height * channels]();
+  this->values = new T[width * height * channels](0);
 }
 
 template <typename T>
@@ -81,6 +81,23 @@ Tensor3<T> Tensor3<T>::operator+(const Tensor3<T>& t) {
     for (size_t y = 0; y < this->h; y++) {
       for (size_t x = 0; x < this->w; x++) {
         T val = this->getValue(x, y, z) + t.values[(t.w * t.h * z) + (t.w * y) + x];
+        result.setValue(x, y, z, val);
+      }
+    }
+  }
+  return result;
+}
+
+template <typename T>
+Tensor3<T> Tensor3<T>::operator-(const Tensor3<T>& t) {
+  if (this->w != t.w || this->h != t.h || this->c != t.c) {
+    throw std::invalid_argument("Tensors dimensions don't match");
+  }
+  Tensor3<T> result = Tensor3<T>(this->w, this->h, this->c);
+  for (size_t z = 0; z < this->c; z++) {
+    for (size_t y = 0; y < this->h; y++) {
+      for (size_t x = 0; x < this->w; x++) {
+        T val = this->getValue(x, y, z) - t.values[(t.w * t.h * z) + (t.w * y) + x];
         result.setValue(x, y, z, val);
       }
     }
