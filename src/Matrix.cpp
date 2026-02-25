@@ -4,6 +4,13 @@
 #include <vector>
 
 template <typename T>
+Matrix<T>::Matrix() {
+  this->numRows = 0;
+  this->numCols = 0;
+  this->values = nullptr;
+}
+
+template <typename T>
 Matrix<T>::Matrix(int c, int r) {
   this->numRows = r;
   this->numCols = c;
@@ -148,7 +155,9 @@ Matrix<T> Matrix<T>::operator/(const U& num) {
 
 template <typename T>
 Matrix<T>::~Matrix() {
-  delete[] this->values;
+  if (this->values != nullptr) {
+    delete[] this->values;
+  }
 }
 
 template <typename T>

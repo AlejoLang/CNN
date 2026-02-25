@@ -10,6 +10,7 @@ private:
   int numCols;
 
 public:
+  Matrix();
   Matrix(int c, int r);
   Matrix(std::vector<T> vals, int cols);
   Matrix(const Matrix<T>& other);
