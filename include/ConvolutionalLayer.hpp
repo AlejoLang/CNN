@@ -21,4 +21,5 @@ public:
   Tensor3<float> forward(Tensor3<float> input) override;
   Tensor3<float> backwards(Tensor3<float> prevLayerDeltas) override;
   void update(float learningRate) override;
+  void initWeights() override;
 };

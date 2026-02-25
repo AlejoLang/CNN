@@ -1,6 +1,8 @@
 #include <Activations.hpp>
 #include <Algebra.hpp>
 #include <DenseLayer.hpp>
+#include <cmath>
+#include <random>
 
 DenseLayer::DenseLayer(int inputSize, int outputSize, ActivationFunction activation)
     : Layer(activation) {
@@ -67,5 +69,23 @@ void DenseLayer::update(float learningRate) {
   for (size_t i = 0; i < this->biases.getNumRows(); i++) {
     float biasDelta = this->deltas.getValue(0, i) * learningRate;
     this->biases.setValue(0, i, this->biases.getValue(0, i) - biasDelta);
+  }
+}
+
+void DenseLayer::initWeights() {
+  std::mt19937 rng(std::random_device{}());
+  // He init for ReLU: stddev = sqrt(2 / fan_in)
+  // Xavier init for Sigmoid/None: stddev = sqrt(1 / fan_in)
+  float stddev = (this->activation == RELU) ? std::sqrt(2.0f / this->inputSize)
+                                            : std::sqrt(1.0f / this->inputSize);
+  std::normal_distribution<float> dist(0.0f, stddev);
+  for (size_t x = 0; x < (size_t)this->weights.getNumCols(); x++) {
+    for (size_t y = 0; y < (size_t)this->weights.getNumRows(); y++) {
+      this->weights.setValue(x, y, dist(rng));
+    }
+  }
+  // biases initialized to zero
+  for (size_t i = 0; i < (size_t)this->biases.getNumRows(); i++) {
+    this->biases.setValue(0, i, 0.0f);
   }
 }

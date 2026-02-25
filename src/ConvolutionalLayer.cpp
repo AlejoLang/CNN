@@ -3,6 +3,7 @@
 #include <ConvolutionalLayer.hpp>
 #include <Matrix.hpp>
 #include <cmath>
+#include <random>
 
 ConvolutionalLayer::ConvolutionalLayer(int filterSize, int filterDepth, int filterCount,
                                        ActivationFunction activation)
@@ -133,5 +134,27 @@ void ConvolutionalLayer::update(float learningRate) {
   for (size_t f = 0; f < filterCount; f++) {
     float biasVal = this->biases.getValue(0, 0, f) - learningRate * this->deltas.getValue(f, 0);
     this->biases.setValue(0, 0, f, biasVal);
+  }
+}
+
+void ConvolutionalLayer::initWeights() {
+  std::mt19937 rng(std::random_device{}());
+  int fan_in = this->filterSize * this->filterSize * this->filterDepth;
+  // He init for ReLU: stddev = sqrt(2 / fan_in)
+  // Xavier init for Sigmoid/None: stddev = sqrt(1 / fan_in)
+  float stddev = (this->activation == RELU) ? std::sqrt(2.0f / fan_in) : std::sqrt(1.0f / fan_in);
+  std::normal_distribution<float> dist(0.0f, stddev);
+  for (size_t f = 0; f < (size_t)this->filterCount; f++) {
+    for (size_t c = 0; c < (size_t)this->filterDepth; c++) {
+      for (size_t y = 0; y < (size_t)this->filterSize; y++) {
+        for (size_t x = 0; x < (size_t)this->filterSize; x++) {
+          this->filters[f].setValue(x, y, c, dist(rng));
+        }
+      }
+    }
+  }
+  // biases initialized to zero
+  for (size_t f = 0; f < (size_t)this->filterCount; f++) {
+    this->biases.setValue(0, 0, f, 0.0f);
   }
 }
