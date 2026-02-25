@@ -9,7 +9,7 @@ private:
   int filterCount;
   int filterSize;
   int filterDepth;
-  std::vector<Tensor3<float>> filters;
+  Matrix<float> flatFilters;
   Tensor3<float> biases;
   Matrix<float> flatLastInput;
   Matrix<float> flatActivations;

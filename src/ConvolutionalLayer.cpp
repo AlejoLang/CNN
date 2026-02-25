@@ -12,31 +12,14 @@ ConvolutionalLayer::ConvolutionalLayer(int filterSize, int filterDepth, int filt
   this->filterSize = filterSize;
   this->filterDepth = filterDepth;
   this->filterCount = filterCount;
-  for (size_t i = 0; i < filterCount; i++) {
-    Tensor3<float> newT = Tensor3<float>(filterSize, filterSize, filterDepth);
-    filters.push_back(newT);
-  }
+  this->flatFilters = Matrix<float>(filterCount, filterSize * filterSize * filterDepth);
   this->biases = Tensor3<float>(1, 1, filterCount);
 }
 
 Tensor3<float> ConvolutionalLayer::forward(Tensor3<float> input) {
   Matrix<float> flatInput = im2col<float>(input, this->filterSize, this->filterDepth);
   this->flatLastInput = flatInput;
-  Matrix<float> flatFilters =
-      Matrix<float>(this->filterCount, this->filterSize * this->filterSize * this->filterDepth);
-  for (size_t f = 0; f < filterCount; f++) {
-    for (size_t c = 0; c < filterDepth; c++) {
-      int channel = c * this->filterSize * this->filterSize;
-      for (size_t y = 0; y < filterSize; y++) {
-        int row = y * this->filterSize;
-        for (size_t x = 0; x < filterSize; x++) {
-          float val = this->filters[f].getValue(x, y, c);
-          flatFilters.setValue(f, channel + row + x, val);
-        }
-      }
-    }
-  }
-  Matrix<float> featureMat = cross(flatInput, flatFilters);
+  Matrix<float> featureMat = cross(flatInput, this->flatFilters);
   this->flatActivations = Matrix<float>(featureMat.getNumCols(), featureMat.getNumRows());
   int slidesW = input.getWidth() - this->filterSize + 1;
   int slidesH = input.getHeight() - this->filterSize + 1;
@@ -63,21 +46,7 @@ Tensor3<float> ConvolutionalLayer::backwards(Tensor3<float> prevLayerDeltas) {
   this->deltas =
       hadamard(flatDeltas, apply(this->flatActivations,
                                  this->activation == RELU ? reluDerivative : sigmoidDerivative));
-  Matrix<float> flatFilters =
-      Matrix<float>(this->filterCount, this->filterSize * this->filterSize * this->filterDepth);
-  for (size_t f = 0; f < filterCount; f++) {
-    for (size_t c = 0; c < filterDepth; c++) {
-      int channel = c * this->filterSize * this->filterSize;
-      for (size_t y = 0; y < filterSize; y++) {
-        int row = y * this->filterSize;
-        for (size_t x = 0; x < filterSize; x++) {
-          float val = this->filters[f].getValue(x, y, c);
-          flatFilters.setValue(f, channel + row + x, val);
-        }
-      }
-    }
-  }
-  Matrix<float> prevDeltas = cross(this->deltas, transpose(flatFilters));
+  Matrix<float> prevDeltas = cross(this->deltas, transpose(this->flatFilters));
   int inputW = prevLayerDeltas.getWidth() + this->filterSize - 1;
   int inputH = prevLayerDeltas.getHeight() + this->filterSize - 1;
   Tensor3<float> result = Tensor3<float>(inputW, inputH, this->filterDepth);
@@ -103,20 +72,6 @@ Tensor3<float> ConvolutionalLayer::backwards(Tensor3<float> prevLayerDeltas) {
 }
 
 void ConvolutionalLayer::update(float learningRate) {
-  Matrix<float> flatFilters =
-      Matrix<float>(this->filterCount, this->filterSize * this->filterSize * this->filterDepth);
-  for (size_t f = 0; f < filterCount; f++) {
-    for (size_t c = 0; c < filterDepth; c++) {
-      int channel = c * this->filterSize * this->filterSize;
-      for (size_t y = 0; y < filterSize; y++) {
-        int row = y * this->filterSize;
-        for (size_t x = 0; x < filterSize; x++) {
-          float val = this->filters[f].getValue(x, y, c);
-          flatFilters.setValue(f, channel + row + x, val);
-        }
-      }
-    }
-  }
   Matrix<float> weightDeltas = cross(transpose(this->flatLastInput), this->deltas);
   for (size_t f = 0; f < filterCount; f++) {
     for (size_t c = 0; c < filterDepth; c++) {
@@ -124,9 +79,9 @@ void ConvolutionalLayer::update(float learningRate) {
       for (size_t y = 0; y < filterSize; y++) {
         int row = y * this->filterSize;
         for (size_t x = 0; x < filterSize; x++) {
-          float val = flatFilters.getValue(f, channel + row + x) -
+          float val = this->flatFilters.getValue(f, channel + row + x) -
                       learningRate * weightDeltas.getValue(f, channel + row + x);
-          this->filters[f].setValue(x, y, c, val);
+          this->flatFilters.setValue(f, channel + row + x, val);
         }
       }
     }
@@ -148,7 +103,8 @@ void ConvolutionalLayer::initWeights() {
     for (size_t c = 0; c < (size_t)this->filterDepth; c++) {
       for (size_t y = 0; y < (size_t)this->filterSize; y++) {
         for (size_t x = 0; x < (size_t)this->filterSize; x++) {
-          this->filters[f].setValue(x, y, c, dist(rng));
+          this->flatFilters.setValue(
+              f, c * this->filterSize * this->filterSize + y * this->filterSize + x, dist(rng));
         }
       }
     }
