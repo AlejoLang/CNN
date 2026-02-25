@@ -18,21 +18,21 @@ Tensor3<float> DenseLayer::forward(Tensor3<float> input) {
   }
 
   Matrix<float> outputMatrix = cross(this->weights, inputMat);
-  for (size_t i = 0; i < outputMatrix.getNumRows(); i++) {
-    for (size_t j = 0; j < outputMatrix.getNumCols(); j++) {
-      float val = outputMatrix.getValue(i, j) + this->biases.getValue(0, j);
+  for (size_t x = 0; x < outputMatrix.getNumCols(); x++) {
+    for (size_t y = 0; y < outputMatrix.getNumRows(); y++) {
+      float val = outputMatrix.getValue(x, y) + this->biases.getValue(0, y);
       if (this->activation == RELU) {
         val = relu(val);
       } else if (this->activation == SIGMOID) {
         val = sigmoid(val);
       }
-      outputMatrix.setValue(i, j, val);
+      outputMatrix.setValue(x, y, val);
     }
   }
 
-  Tensor3<float> outputTensor = Tensor3<float>(outputMatrix.getNumCols(), 1, 1);
-  for (size_t i = 0; i < outputMatrix.getNumCols(); i++) {
-    outputTensor.setValue(i, 0, 0, outputMatrix.getValue(0, i));
+  Tensor3<float> outputTensor = Tensor3<float>(1, outputMatrix.getNumRows(), 1);
+  for (size_t i = 0; i < outputMatrix.getNumRows(); i++) {
+    outputTensor.setValue(0, i, 0, outputMatrix.getValue(0, i));
   }
   return outputTensor;
 }
