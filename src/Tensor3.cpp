@@ -54,7 +54,7 @@ Tensor3<T> Tensor3<T>::operator+(const Tensor3<T>& t) {
   for (size_t z = 0; z < this->c; z++) {
     for (size_t y = 0; y < this->h; y++) {
       for (size_t x = 0; x < this->w; x++) {
-        T val = this->getValue(x, y, z) + t.getValue(x, y, z);
+        T val = this->getValue(x, y, z) + t.values[(t.w * t.h * z) + (t.w * y) + x];
         result.setValue(x, y, z, val);
       }
     }
@@ -68,3 +68,5 @@ Tensor3<T>::~Tensor3() {
     delete[] this->values;
   }
 }
+
+template class Tensor3<float>;
