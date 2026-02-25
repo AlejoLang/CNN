@@ -34,7 +34,6 @@ Tensor3<float> ConvolutionalLayer::forward(Tensor3<float> input) {
       }
     }
   }
-
   Matrix<float> featureMat = cross(flatInput, flatFilters);
   int slidesW = input.getWidth() - this->filterSize + 1;
   int slidesH = input.getHeight() - this->filterSize + 1;
@@ -43,7 +42,7 @@ Tensor3<float> ConvolutionalLayer::forward(Tensor3<float> input) {
     int row = std::floor(y / slidesW);
     int col = y % slidesW;
     for (size_t x = 0; x < featureMat.getNumCols(); x++) {
-      float value = featureMat.getValue(x, y) + this->biases.getValue(col, row, x);
+      float value = featureMat.getValue(x, y) + this->biases.getValue(0, 0, x);
       if (this->activation == RELU) {
         value = relu(value);
       } else if (this->activation == SIGMOID) {
