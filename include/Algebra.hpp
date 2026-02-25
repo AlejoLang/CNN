@@ -18,3 +18,6 @@ Tensor3<T> apply(Tensor3<T> m, T (*function)(T));
 
 template <typename T>
 Matrix<T> im2col(Tensor3<T> input, int filterSize, int filterDepth);
+
+template <typename T>
+Matrix<T> hadamard(Matrix<T> m1, Matrix<T> m2);

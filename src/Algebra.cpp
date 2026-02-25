@@ -81,8 +81,23 @@ Matrix<T> im2col(Tensor3<T> input, int filterSize, int filterDepth) {
   return flatInput;
 }
 
+template <typename T>
+Matrix<T> hadamard(Matrix<T> m1, Matrix<T> m2) {
+  if (m1.getNumRows() != m2.getNumRows() || m1.getNumCols() != m2.getNumCols()) {
+    throw std::invalid_argument("Incompatible matrix dimensions");
+  }
+  Matrix<T> result = Matrix<T>(m1.getNumCols(), m1.getNumRows());
+  for (size_t y = 0; y < m1.getNumRows(); y++) {
+    for (size_t x = 0; x < m1.getNumCols(); x++) {
+      result.setValue(x, y, m1.getValue(x, y) * m2.getValue(x, y));
+    }
+  }
+  return result;
+}
+
 template Matrix<float> cross(Matrix<float> m1, Matrix<float> m2);
 template Matrix<float> transpose(Matrix<float> m);
 template Matrix<float> apply(Matrix<float> m, float (*function)(float));
 template Tensor3<float> apply(Tensor3<float> m, float (*function)(float));
 template Matrix<float> im2col(Tensor3<float> input, int filterSize, int filterDepth);
+template Matrix<float> hadamard(Matrix<float> m1, Matrix<float> m2);
