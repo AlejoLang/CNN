@@ -9,6 +9,8 @@ private:
 public:
   Tensor3();
   Tensor3(int width, int height, int channels);
+  Tensor3(const Tensor3<T>& other);
+  Tensor3<T>& operator=(const Tensor3<T>& other);
   int getWidth();
   int getHeight();
   int getChannels();
