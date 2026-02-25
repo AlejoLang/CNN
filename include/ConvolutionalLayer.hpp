@@ -15,4 +15,5 @@ public:
   ConvolutionalLayer(int filterSize, int filterDepth, int filterCount,
                      ActivationFunction activation = RELU);
   Tensor3<float> forward(Tensor3<float> input) override;
+  Tensor3<float> backwards(Tensor3<float> deltas) override;
 };

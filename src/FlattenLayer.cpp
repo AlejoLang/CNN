@@ -21,3 +21,5 @@ Tensor3<float> FlattenLayer::forward(Tensor3<float> input) {
   }
   return output;
 }
+
+Tensor3<float> FlattenLayer::backwards(Tensor3<float> deltas) {}

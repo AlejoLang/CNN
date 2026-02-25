@@ -19,7 +19,7 @@ ConvolutionalLayer::ConvolutionalLayer(int filterSize, int filterDepth, int filt
 }
 
 Tensor3<float> ConvolutionalLayer::forward(Tensor3<float> input) {
-  Matrix<float> flatInput = im2col(input, this->filterSize, this->filterDepth);
+  Matrix<float> flatInput = im2col<float>(input, this->filterSize, this->filterDepth);
   Matrix<float> flatFilters =
       Matrix<float>(this->filterCount, this->filterSize * this->filterSize * this->filterDepth);
   for (size_t f = 0; f < filterCount; f++) {
@@ -54,3 +54,5 @@ Tensor3<float> ConvolutionalLayer::forward(Tensor3<float> input) {
   }
   return featureTens;
 }
+
+Tensor3<float> ConvolutionalLayer::backwards(Tensor3<float> deltas) {}

@@ -30,3 +30,5 @@ Tensor3<float> MaxPoolLayer::forward(Tensor3<float> input) {
   }
   return output;
 }
+
+Tensor3<float> MaxPoolLayer::backwards(Tensor3<float> deltas) {}
