@@ -14,7 +14,7 @@ template <typename T>
 Matrix<T>::Matrix(int c, int r) {
   this->numRows = r;
   this->numCols = c;
-  this->values = new T[r * c];
+  this->values = new T[r * c]();
 }
 
 template <typename T>
