@@ -1,5 +1,6 @@
 #pragma once
 #include <Matrix.hpp>
+#include <Tensor3.hpp>
 
 // Computes the cross product of two matrices
 template <typename T>

@@ -46,10 +46,10 @@ Matrix<T> apply(Matrix<T> m, T (*function)(T)) {
 
 template <typename T>
 Tensor3<T> apply(Tensor3<T> m, T (*function)(T)) {
-  Tensor3<T> result = Tensor3<T>(m.getNumCols(), m.getNumRows(), m.getDepth());
-  for (size_t z = 0; z < m.getDepth(); z++) {
-    for (size_t y = 0; y < m.getNumRows(); y++) {
-      for (size_t x = 0; x < m.getNumCols(); x++) {
+  Tensor3<T> result = Tensor3<T>(m.getWidth(), m.getHeight(), m.getChannels());
+  for (size_t z = 0; z < m.getChannels(); z++) {
+    for (size_t y = 0; y < m.getHeight(); y++) {
+      for (size_t x = 0; x < m.getWidth(); x++) {
         result.setValue(x, y, z, function(m.getValue(x, y, z)));
       }
     }
@@ -81,19 +81,8 @@ Matrix<T> im2col(Tensor3<T> input, int filterSize, int filterDepth) {
   return flatInput;
 }
 
-// Explicit template instantiations
-template Matrix<int> cross(Matrix<int> m1, Matrix<int> m2);
 template Matrix<float> cross(Matrix<float> m1, Matrix<float> m2);
-template Matrix<double> cross(Matrix<double> m1, Matrix<double> m2);
-template Matrix<int> transpose(Matrix<int> m);
 template Matrix<float> transpose(Matrix<float> m);
-template Matrix<double> transpose(Matrix<double> m);
-template Matrix<int> apply(Matrix<int> m, int (*function)(int));
 template Matrix<float> apply(Matrix<float> m, float (*function)(float));
-template Matrix<double> apply(Matrix<double> m, double (*function)(double));
-template Tensor3<int> apply(Tensor3<int> m, int (*function)(int));
 template Tensor3<float> apply(Tensor3<float> m, float (*function)(float));
-template Tensor3<double> apply(Tensor3<double> m, double (*function)(double));
-template Matrix<int> im2col(Tensor3<int> input, int filterSize, int filterDepth);
 template Matrix<float> im2col(Tensor3<float> input, int filterSize, int filterDepth);
-template Matrix<double> im2col(Tensor3<double> input, int filterSize, int filterDepth);

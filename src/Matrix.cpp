@@ -180,30 +180,13 @@ std::ostream& operator<<(std::ostream& os, const Matrix<T>& m) {
   return os;
 }
 
-// Explicit template instantiations
-template class Matrix<int>;
 template class Matrix<float>;
 
-template class Matrix<double>;
-template std::ostream& operator<<(std::ostream& os, const Matrix<int>& m);
 template std::ostream& operator<<(std::ostream& os, const Matrix<float>& m);
-template std::ostream& operator<<(std::ostream& os, const Matrix<double>& m);
 
-template Matrix<int> Matrix<int>::operator* <int>(const int&);
-template Matrix<int> Matrix<int>::operator* <float>(const float&);
-template Matrix<int> Matrix<int>::operator* <double>(const double&);
 template Matrix<float> Matrix<float>::operator* <int>(const int&);
 template Matrix<float> Matrix<float>::operator* <float>(const float&);
 template Matrix<float> Matrix<float>::operator* <double>(const double&);
-template Matrix<double> Matrix<double>::operator* <int>(const int&);
-template Matrix<double> Matrix<double>::operator* <float>(const float&);
-template Matrix<double> Matrix<double>::operator* <double>(const double&);
-template Matrix<int> Matrix<int>::operator/ <int>(const int&);
-template Matrix<int> Matrix<int>::operator/ <float>(const float&);
-template Matrix<int> Matrix<int>::operator/ <double>(const double&);
 template Matrix<float> Matrix<float>::operator/ <int>(const int&);
 template Matrix<float> Matrix<float>::operator/ <float>(const float&);
 template Matrix<float> Matrix<float>::operator/ <double>(const double&);
-template Matrix<double> Matrix<double>::operator/ <int>(const int&);
-template Matrix<double> Matrix<double>::operator/ <float>(const float&);
-template Matrix<double> Matrix<double>::operator/ <double>(const double&);
