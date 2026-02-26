@@ -1,7 +1,198 @@
+#include <ConvolutionalLayer.hpp>
+#include <DenseLayer.hpp>
+#include <FlattenLayer.hpp>
+#include <MaxPoolLayer.hpp>
+#include <Network.hpp>
+#include <Tensor3.hpp>
+#include <chrono>
+#include <cstdint>
 #include <iostream>
+#include <matio.h>
+#include <random>
+#include <vector>
 
-int main()
-{
-  std::cout << "Hello world" << std::endl;
+void load_data(std::string path, std::vector<Tensor3<float>>& images,
+               std::vector<Tensor3<float>>& labels) {
+  mat_t* dataset = Mat_Open(path.c_str(), MAT_ACC_RDONLY);
+  if (!dataset) {
+    std::cerr << "Couldn't open the file" << std::endl;
+    return;
+  }
+  matvar_t* dataVar = Mat_VarRead(dataset, "data");
+  if (!dataVar) {
+    std::cerr << "Cannot find variable 'data'\n";
+    Mat_Close(dataset);
+    return;
+  }
+
+  if (!dataVar->data) {
+    std::cerr << "Data variable has no data\n";
+    Mat_VarFree(dataVar);
+    Mat_Close(dataset);
+    return;
+  }
+
+  size_t rows = dataVar->dims[0]; // 784
+  size_t cols = dataVar->dims[1]; // 70000
+
+  std::cout << "Data dimensions: " << rows << " x " << cols << std::endl;
+  std::cout << "Data class type: " << dataVar->class_type << std::endl;
+
+  images = std::vector<Tensor3<float>>(cols, Tensor3<float>(28, 28, 1));
+
+  // Handle different data types
+  if (dataVar->class_type == MAT_C_DOUBLE) {
+    double* data = static_cast<double*>(dataVar->data);
+
+    // Some MNIST .mat files store pixels as double in [0,255].
+    // Detect that case and normalize to [0,1] to avoid sigmoid saturation.
+    double maxPixel = 0.0;
+    for (size_t idx = 0; idx < rows * cols; ++idx) {
+      if (data[idx] > maxPixel) {
+        maxPixel = data[idx];
+      }
+    }
+    const double scale = (maxPixel > 1.0) ? 255.0 : 1.0;
+
+    for (size_t c = 0; c < cols; ++c)
+      for (size_t r = 0; r < rows; ++r)
+        images[c].setValue(r % 28, r / 28, 0, static_cast<float>(data[r + c * rows] / scale));
+  } else if (dataVar->class_type == MAT_C_UINT8) {
+    uint8_t* data = static_cast<uint8_t*>(dataVar->data);
+    for (size_t c = 0; c < cols; ++c)
+      for (size_t r = 0; r < rows; ++r)
+        images[c].setValue(r % 28, r / 28, 0,
+                           static_cast<float>(data[r + c * rows]) / 255.0f); // Normalize to [0, 1]
+  } else {
+    std::cerr << "Unsupported data type: " << dataVar->class_type << std::endl;
+    Mat_VarFree(dataVar);
+    Mat_Close(dataset);
+    return;
+  }
+
+  Mat_VarFree(dataVar);
+
+  /* -------- Read labels -------- */
+  matvar_t* labelVar = Mat_VarRead(dataset, "label");
+  if (!labelVar) {
+    std::cerr << "Cannot find variable 'label'\n";
+    Mat_Close(dataset);
+    return;
+  }
+
+  if (!labelVar->data) {
+    std::cerr << "Label variable has no data\n";
+    Mat_VarFree(labelVar);
+    Mat_Close(dataset);
+    return;
+  }
+
+  labels = std::vector<Tensor3<float>>(cols, Tensor3<float>(10, 1, 1));
+
+  if (labelVar->class_type == MAT_C_DOUBLE) {
+    double* labels_raw = static_cast<double*>(labelVar->data);
+    for (size_t i = 0; i < cols; ++i)
+      labels[i].setValue(static_cast<int>(labels_raw[i]), 0, 0, 1);
+  } else if (labelVar->class_type == MAT_C_UINT8) {
+    uint8_t* labels_raw = static_cast<uint8_t*>(labelVar->data);
+    for (size_t i = 0; i < cols; ++i)
+      labels[i].setValue(static_cast<int>(labels_raw[i]), 0, 0, 1);
+  } else if (labelVar->class_type == MAT_C_SINGLE) {
+    float* labels_raw = static_cast<float*>(labelVar->data);
+    for (size_t i = 0; i < cols; ++i)
+      labels[i].setValue(static_cast<int>(labels_raw[i]), 0, 0, 1);
+  } else {
+    std::cerr << "Unsupported label type: " << labelVar->class_type << std::endl;
+  }
+  Mat_VarFree(labelVar);
+  Mat_Close(dataset);
+}
+
+struct TrainItem {
+  Tensor3<float> image;
+  Tensor3<float> label;
+};
+
+int main() {
+
+  Network net = Network();
+  net.addLayer(new ConvolutionalLayer(3, 1, 8));
+  net.addLayer(new MaxPoolLayer(2, 8));
+  net.addLayer(new ConvolutionalLayer(3, 8, 16));
+  net.addLayer(new MaxPoolLayer(2, 16));
+  net.addLayer(new FlattenLayer(5, 5, 16));
+  net.addLayer(new DenseLayer(5 * 5 * 16, 120));
+  net.addLayer(new DenseLayer(120, 84));
+  net.addLayer(new DenseLayer(84, 10));
+
+  std::vector<Tensor3<float>> images, labels;
+  load_data("mnist.mat", images, labels);
+
+  std::vector<TrainItem> samples;
+  for (size_t i = 0; i < images.size(); i++) {
+    samples.push_back({images[i], labels[i]});
+  }
+  std::mt19937 rng(std::random_device{}());
+  std::shuffle(samples.begin(), samples.end(), rng);
+  std::vector<TrainItem> testData(samples.begin() + samples.size() * 0.8, samples.end());
+  std::vector<TrainItem> trainData(samples.begin(), samples.begin() + samples.size() * 0.8);
+
+  std::shuffle(trainData.begin(), trainData.end(), rng);
+
+  for (size_t epoch = 0; epoch < 5; epoch++) {
+    float totalLoss = 0.0f;
+    // Measure time each 1000 samples
+    auto startTime = std::chrono::high_resolution_clock::now();
+    for (int i = 0; i < (int)trainData.size(); i++) {
+      if (i % 1000 == 0 && i > 0) {
+        auto endTime = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = endTime - startTime;
+        std::cout << "Processed " << i << " samples in " << elapsed.count() << " seconds."
+                  << std::endl;
+        startTime = std::chrono::high_resolution_clock::now();
+      }
+      const TrainItem& item = trainData[i];
+      Tensor3<float> output = net.forward(item.image);
+      net.backwards(output, item.label);
+      net.update(0.01f);
+
+      // Calculate loss (MSE)
+      float sampleLoss = 0.0f;
+      for (size_t j = 0; j < output.getChannels(); j++) {
+        float predicted = output.getValue(0, 0, j);
+        float actual = const_cast<Tensor3<float>&>(item.label).getValue(0, 0, j);
+        sampleLoss += (predicted - actual) * (predicted - actual);
+      }
+      totalLoss += sampleLoss / output.getChannels();
+    }
+    std::cout << "Epoch " << epoch + 1 << ", Loss: " << totalLoss / (trainData.size()) << std::endl;
+    std::shuffle(trainData.begin(), trainData.end(), rng);
+  }
+  // Evaluate on test data
+  int correct = 0;
+  for (const TrainItem& item : testData) {
+    Tensor3<float> output = net.forward(item.image);
+    int predictedLabel = 0;
+    float maxVal = output.getValue(0, 0, 0);
+    for (size_t j = 1; j < (size_t)output.getWidth(); j++) {
+      float val = output.getValue(j, 0, 0);
+      if (val > maxVal) {
+        maxVal = val;
+        predictedLabel = j;
+      }
+    }
+    int actualLabel = 0;
+    for (size_t j = 0; j < (size_t)const_cast<Tensor3<float>&>(item.label).getWidth(); j++) {
+      if (const_cast<Tensor3<float>&>(item.label).getValue(j, 0, 0) == 1) {
+        actualLabel = j;
+        break;
+      }
+    }
+    if (predictedLabel == actualLabel) {
+      correct++;
+    }
+  }
+  std::cout << "Test Accuracy: " << (float)correct / testData.size() * 100 << "%" << std::endl;
+
   return 0;
 }
