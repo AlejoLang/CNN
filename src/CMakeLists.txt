@@ -8,6 +8,7 @@ add_executable(${PROJECT_NAME}
   FlattenLayer.cpp
   DenseLayer.cpp
   Network.cpp
+  Canvas.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
