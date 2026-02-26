@@ -2,6 +2,8 @@
 #include <Activations.hpp>
 #include <Tensor3.hpp>
 
+enum LayerType { DENSE, CONVOLUTIONAL, MAXPOOL, FLATTEN };
+
 class Layer {
 protected:
   ActivationFunction activation;
