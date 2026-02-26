@@ -1,11 +1,17 @@
+#include <Canvas.hpp>
 #include <ConvolutionalLayer.hpp>
 #include <DenseLayer.hpp>
 #include <FlattenLayer.hpp>
 #include <MaxPoolLayer.hpp>
 #include <Network.hpp>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_rect.h>
+#include <SDL3/SDL_render.h>
+#include <SDL3/SDL_video.h>
 #include <Tensor3.hpp>
 #include <chrono>
 #include <cstdint>
+#include <iomanip>
 #include <iostream>
 #include <matio.h>
 #include <random>
@@ -108,14 +114,53 @@ void load_data(std::string path, std::vector<Tensor3<float>>& images,
   Mat_Close(dataset);
 }
 
+void train_mode(Network& net, const std::vector<Tensor3<float>>& images,
+                const std::vector<Tensor3<float>>& labels, std::string savePath);
+void test_mode(Network& net);
+
 struct TrainItem {
   Tensor3<float> image;
   Tensor3<float> label;
 };
 
-int main() {
+int main(int argc, char* argv[]) {
 
   Network net = Network();
+
+  // --test (path to .bin file) or --train(path to .mat file)
+  if (argc < 2) {
+    std::cerr << "Usage: " << argv[0] << " --train <path_to_mat_file> OR " << argv[0]
+              << " --test <path_to_bin_file>" << std::endl;
+    return 1;
+  }
+  std::string mode = argv[1];
+  if (mode == "--train") {
+    if (argc < 3) {
+      std::cerr << "No .mat specified" << std::endl;
+      return 1;
+    }
+    std::vector<Tensor3<float>> images, labels;
+    load_data(argv[2], images, labels);
+    train_mode(net, images, labels, "mnist_cnn_weights.bin");
+
+  } else if (mode == "--test") {
+    if (argc < 3) {
+      std::cerr << "No .bin file specified" << std::endl;
+      return 1;
+    }
+    net.loadWeights(argv[2]);
+    test_mode(net);
+  } else {
+    std::cerr << "Unknown mode: " << mode << ". Use --train or --test" << std::endl;
+    return 1;
+  }
+
+  return 0;
+}
+
+void train_mode(Network& net, const std::vector<Tensor3<float>>& images,
+                const std::vector<Tensor3<float>>& labels, std::string savePath) {
+
   net.addLayer(new ConvolutionalLayer(3, 1, 8));
   net.addLayer(new MaxPoolLayer(2, 8));
   net.addLayer(new ConvolutionalLayer(3, 8, 16));
@@ -124,9 +169,6 @@ int main() {
   net.addLayer(new DenseLayer(5 * 5 * 16, 120));
   net.addLayer(new DenseLayer(120, 84));
   net.addLayer(new DenseLayer(84, 10));
-
-  std::vector<Tensor3<float>> images, labels;
-  load_data("mnist.mat", images, labels);
 
   std::vector<TrainItem> samples;
   for (size_t i = 0; i < images.size(); i++) {
@@ -193,6 +235,84 @@ int main() {
     }
   }
   std::cout << "Test Accuracy: " << (float)correct / testData.size() * 100 << "%" << std::endl;
+  net.saveWeights(savePath);
+}
 
-  return 0;
+void test_mode(Network& net) {
+  SDL_Init(SDL_INIT_VIDEO);
+  SDL_Window* window = SDL_CreateWindow("CNN Test", 640, 480, SDL_WINDOW_RESIZABLE);
+  SDL_Renderer* renderer = SDL_CreateRenderer(window, NULL);
+  Canvas canvas = Canvas(28, 28, renderer);
+  int wh, ww;
+  SDL_GetWindowSize(window, &wh, &ww);
+  SDL_FRect rect = {0, 0, (float)wh, (float)ww};
+  bool exit = false;
+  bool mousePressed = false;
+  while (!exit) {
+    SDL_RenderClear(renderer);
+    canvas.render(renderer, &rect);
+    SDL_RenderPresent(renderer);
+
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+      switch (event.type) {
+      case SDL_EVENT_MOUSE_BUTTON_DOWN: {
+        if (event.button.button == SDL_BUTTON_LEFT) {
+
+          mousePressed = true;
+        }
+        break;
+      }
+      case SDL_EVENT_MOUSE_BUTTON_UP: {
+        if (event.button.button == SDL_BUTTON_LEFT) {
+          mousePressed = false;
+        }
+        break;
+      }
+      case SDL_EVENT_MOUSE_MOTION: {
+        if (mousePressed) {
+          int x = event.motion.x * 28 / wh;
+          int y = event.motion.y * 28 / ww;
+          canvas.setPixel(x, y, 0xFFFFFFFF);
+          canvas.setPixel(x + 1, y, 0xFFFFFFFF);
+          canvas.setPixel(x - 1, y, 0xFFFFFFFF);
+          canvas.setPixel(x, y + 1, 0xFFFFFFFF);
+          canvas.setPixel(x, y - 1, 0xFFFFFFFF);
+        }
+        break;
+      }
+      case SDL_EVENT_KEY_DOWN: {
+        if (event.key.key == SDLK_C) {
+          canvas.clear(0x00000000);
+          break;
+        }
+        if (event.key.key == SDLK_RETURN) {
+          uint32_t* pixels = canvas.getBuffer();
+          Tensor3<float> input = Tensor3<float>(28, 28, 1);
+          for (size_t i = 0; i < 28 * 28; i++) {
+            std::cout << (pixels[i] ? "X" : " ") << ((i % 28 == 27) ? "\n" : "");
+            input.setValue(i % 28, i / 28, 0, ((pixels[i] >> 24) & 0xFF) / 255.0f);
+          }
+          Tensor3<float> output = net.forward(input);
+          for (size_t i = 0; i < output.getWidth(); i++) {
+            std::cout << i << ": " << std::fixed << std::setprecision(2)
+                      << output.getValue(i, 0, 0) * 100 << "%" << std::endl;
+          }
+          break;
+        }
+        break;
+      }
+      case SDL_EVENT_QUIT: {
+        exit = true;
+        break;
+      }
+      default:
+        break;
+      }
+    }
+  }
+
+  SDL_DestroyRenderer(renderer);
+  SDL_DestroyWindow(window);
+  SDL_Quit();
 }
