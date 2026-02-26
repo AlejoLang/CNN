@@ -9,13 +9,19 @@ Matrix<T> cross(Matrix<T> m1, Matrix<T> m2) {
     throw std::invalid_argument(
         "Number of colums of the first matrix doesn't match the number of rows of the second");
   }
-  Matrix<T> result = Matrix<T>(m2.getNumCols(), m1.getNumRows());
-  for (size_t y = 0; y < m1.getNumRows(); y++) {
-    for (size_t x = 0; x < m1.getNumCols(); x++) {
-      for (size_t x2 = 0; x2 < m2.getNumCols(); x2++) {
-        T v = result.getValue(x2, y);
-        v += m1.getValue(x, y) * m2.getValue(x2, x);
-        result.setValue(x2, y, v);
+  int rows1 = m1.getNumRows();
+  int cols1 = m1.getNumCols();
+  int cols2 = m2.getNumCols();
+  T* a = m1.getValues();
+  T* b = m2.getValues();
+  Matrix<T> result = Matrix<T>(cols2, rows1);
+  T* c = result.getValues();
+#pragma omp parallel for schedule(static)
+  for (int y = 0; y < rows1; y++) {
+    for (int x = 0; x < cols1; x++) {
+      T aVal = a[y * cols1 + x];
+      for (int x2 = 0; x2 < cols2; x2++) {
+        c[y * cols2 + x2] += aVal * b[x * cols2 + x2];
       }
     }
   }

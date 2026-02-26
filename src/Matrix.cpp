@@ -103,11 +103,10 @@ Matrix<T> Matrix<T>::operator+(const Matrix<T>& m) {
   if (this->numCols != m.numCols || this->numRows != m.numRows) {
     throw std::invalid_argument("Matrices dimensions don't match");
   }
+  int n = this->numRows * this->numCols;
   Matrix<T> result = Matrix<T>(this->numCols, this->numRows);
-  for (size_t y = 0; y < this->numRows; y++) {
-    for (size_t x = 0; x < this->numCols; x++) {
-      result.setValue(x, y, this->getValue(x, y) + m.values[(y * m.numCols) + x]);
-    }
+  for (int i = 0; i < n; i++) {
+    result.values[i] = this->values[i] + m.values[i];
   }
   return result;
 }
@@ -117,11 +116,10 @@ Matrix<T> Matrix<T>::operator-(const Matrix<T>& m) {
   if (this->numCols != m.numCols || this->numRows != m.numRows) {
     throw std::invalid_argument("Matrices dimensions don't match");
   }
+  int n = this->numRows * this->numCols;
   Matrix<T> result = Matrix<T>(this->numCols, this->numRows);
-  for (size_t y = 0; y < this->numRows; y++) {
-    for (size_t x = 0; x < this->numCols; x++) {
-      result.setValue(x, y, this->getValue(x, y) - m.values[(y * m.numCols) + x]);
-    }
+  for (int i = 0; i < n; i++) {
+    result.values[i] = this->values[i] - m.values[i];
   }
   return result;
 }
@@ -129,11 +127,11 @@ Matrix<T> Matrix<T>::operator-(const Matrix<T>& m) {
 template <typename T>
 template <typename U>
 Matrix<T> Matrix<T>::operator*(const U& num) {
+  int n = this->numRows * this->numCols;
+  T factor = static_cast<T>(num);
   Matrix<T> result = Matrix<T>(this->numCols, this->numRows);
-  for (size_t y = 0; y < this->numRows; y++) {
-    for (size_t x = 0; x < this->numCols; x++) {
-      result.setValue(x, y, this->getValue(x, y) * static_cast<T>(num));
-    }
+  for (int i = 0; i < n; i++) {
+    result.values[i] = this->values[i] * factor;
   }
   return result;
 }
@@ -144,11 +142,11 @@ Matrix<T> Matrix<T>::operator/(const U& num) {
   if (static_cast<T>(num) == static_cast<T>(0)) {
     throw std::invalid_argument("Potential division by 0");
   }
+  int n = this->numRows * this->numCols;
+  T factor = static_cast<T>(num);
   Matrix<T> result = Matrix<T>(this->numCols, this->numRows);
-  for (size_t y = 0; y < this->numRows; y++) {
-    for (size_t x = 0; x < this->numCols; x++) {
-      result.setValue(x, y, this->getValue(x, y) / static_cast<T>(num));
-    }
+  for (int i = 0; i < n; i++) {
+    result.values[i] = this->values[i] / factor;
   }
   return result;
 }
