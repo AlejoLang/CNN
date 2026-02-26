@@ -13,5 +13,7 @@ public:
   Tensor3<float> forward(Tensor3<float> input);
   void backwards(Tensor3<float> result, Tensor3<float> expected);
   void update(float learningRate);
+  void saveWeights(std::string path);
+  void loadWeights(std::string path);
   ~Network();
 };
