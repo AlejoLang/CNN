@@ -7,6 +7,8 @@ MaxPoolLayer::MaxPoolLayer(int size, int depth) {
 }
 
 Tensor3<float> MaxPoolLayer::forward(Tensor3<float> input) {
+  this->inputWidth = input.getWidth();
+  this->inputHeight = input.getHeight();
   int slidesW = input.getWidth() / this->poolSize;
   int slidesH = input.getHeight() / this->poolSize;
   Tensor3<float> output = Tensor3<float>(slidesW, slidesH, this->poolDepth);
@@ -37,8 +39,7 @@ Tensor3<float> MaxPoolLayer::forward(Tensor3<float> input) {
 }
 
 Tensor3<float> MaxPoolLayer::backwards(Tensor3<float> deltas) {
-  Tensor3<float> output = Tensor3<float>(deltas.getWidth() * this->poolSize,
-                                         deltas.getHeight() * this->poolSize, this->poolDepth);
+  Tensor3<float> output = Tensor3<float>(this->inputWidth, this->inputHeight, this->poolDepth);
   for (size_t c = 0; c < this->poolDepth; c++) {
     for (size_t y = 0; y < deltas.getHeight(); y++) {
       for (size_t x = 0; x < deltas.getWidth(); x++) {
