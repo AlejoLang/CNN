@@ -10,7 +10,7 @@ private:
   int filterSize;
   int filterDepth;
   Matrix<float> flatFilters;
-  Tensor3<float> biases;
+  Matrix<float> biases;
   Matrix<float> flatLastInput;
   Matrix<float> flatActivations;
   Matrix<float> deltas;
@@ -22,4 +22,12 @@ public:
   Tensor3<float> backwards(Tensor3<float> prevLayerDeltas) override;
   void update(float learningRate) override;
   void initWeights() override;
+  void setFilters(Matrix<float> filters);
+  void setBiases(Matrix<float> biases);
+  Matrix<float> getFilters();
+  Matrix<float> getBiases();
+  int getFilterCount();
+  int getFilterSize();
+  int getFilterDepth();
+  ActivationFunction getActivation();
 };

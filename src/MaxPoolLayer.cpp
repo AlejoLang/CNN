@@ -55,3 +55,10 @@ Tensor3<float> MaxPoolLayer::backwards(Tensor3<float> deltas) {
   }
   return output;
 }
+
+int MaxPoolLayer::getPoolSize() {
+  return this->poolSize;
+}
+int MaxPoolLayer::getPoolDepth() {
+  return this->poolDepth;
+}

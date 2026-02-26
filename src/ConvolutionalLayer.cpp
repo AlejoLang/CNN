@@ -13,7 +13,7 @@ ConvolutionalLayer::ConvolutionalLayer(int filterSize, int filterDepth, int filt
   this->filterDepth = filterDepth;
   this->filterCount = filterCount;
   this->flatFilters = Matrix<float>(filterCount, filterSize * filterSize * filterDepth);
-  this->biases = Tensor3<float>(1, 1, filterCount);
+  this->biases = Matrix<float>(1, filterCount);
 }
 
 Tensor3<float> ConvolutionalLayer::forward(Tensor3<float> input) {
@@ -28,7 +28,7 @@ Tensor3<float> ConvolutionalLayer::forward(Tensor3<float> input) {
     int row = std::floor(y / slidesW);
     int col = y % slidesW;
     for (size_t x = 0; x < featureMat.getNumCols(); x++) {
-      float value = featureMat.getValue(x, y) + this->biases.getValue(0, 0, x);
+      float value = featureMat.getValue(x, y) + this->biases.getValue(0, x);
       this->flatActivations.setValue(x, y, value);
       if (this->activation == RELU) {
         value = relu(value);
@@ -87,8 +87,8 @@ void ConvolutionalLayer::update(float learningRate) {
     }
   }
   for (size_t f = 0; f < filterCount; f++) {
-    float biasVal = this->biases.getValue(0, 0, f) - learningRate * this->deltas.getValue(f, 0);
-    this->biases.setValue(0, 0, f, biasVal);
+    float biasVal = this->biases.getValue(0, f) - learningRate * this->deltas.getValue(f, 0);
+    this->biases.setValue(0, f, biasVal);
   }
 }
 
@@ -111,6 +111,34 @@ void ConvolutionalLayer::initWeights() {
   }
   // biases initialized to zero
   for (size_t f = 0; f < (size_t)this->filterCount; f++) {
-    this->biases.setValue(0, 0, f, 0.0f);
+    this->biases.setValue(0, f, 0.0f);
   }
+}
+
+void ConvolutionalLayer::setFilters(Matrix<float> filters) {
+  this->flatFilters = filters;
+}
+
+void ConvolutionalLayer::setBiases(Matrix<float> biases) {
+  this->biases = biases;
+}
+
+Matrix<float> ConvolutionalLayer::getFilters() {
+  return this->flatFilters;
+}
+Matrix<float> ConvolutionalLayer::getBiases() {
+  return this->biases;
+}
+
+int ConvolutionalLayer::getFilterCount() {
+  return this->filterCount;
+}
+int ConvolutionalLayer::getFilterSize() {
+  return this->filterSize;
+}
+int ConvolutionalLayer::getFilterDepth() {
+  return this->filterDepth;
+}
+ActivationFunction ConvolutionalLayer::getActivation() {
+  return this->activation;
 }

@@ -10,4 +10,7 @@ public:
   FlattenLayer(int inputWidth, int inputHeight, int inputDepth);
   Tensor3<float> forward(Tensor3<float> input) override;
   Tensor3<float> backwards(Tensor3<float> prevLayerDeltas) override;
+  int getInputWidth();
+  int getInputHeight();
+  int getInputDepth();
 };

@@ -14,4 +14,6 @@ public:
   MaxPoolLayer(int size, int depth);
   Tensor3<float> forward(Tensor3<float> input) override;
   Tensor3<float> backwards(Tensor3<float> prevLayerDeltas) override;
+  int getPoolSize();
+  int getPoolDepth();
 };

@@ -89,3 +89,35 @@ void DenseLayer::initWeights() {
     this->biases.setValue(0, i, 0.0f);
   }
 }
+
+void DenseLayer::setWeights(Matrix<float> weights) {
+  if (weights.getNumCols() != (size_t)this->inputSize ||
+      weights.getNumRows() != (size_t)this->outputSize) {
+    throw std::invalid_argument("Weights dimensions don't match layer configuration");
+  }
+  this->weights = weights;
+}
+
+void DenseLayer::setBiases(Matrix<float> biases) {
+  if (biases.getNumCols() != 1 || biases.getNumRows() != (size_t)this->outputSize) {
+    throw std::invalid_argument("Biases dimensions don't match layer configuration");
+  }
+  this->biases = biases;
+}
+
+Matrix<float> DenseLayer::getWeights() {
+  return this->weights;
+}
+Matrix<float> DenseLayer::getBiases() {
+  return this->biases;
+}
+
+int DenseLayer::getInputSize() {
+  return this->inputSize;
+}
+int DenseLayer::getOutputSize() {
+  return this->outputSize;
+}
+ActivationFunction DenseLayer::getActivation() {
+  return this->activation;
+}

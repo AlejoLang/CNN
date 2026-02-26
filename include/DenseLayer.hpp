@@ -18,4 +18,11 @@ public:
   Tensor3<float> backwards(Tensor3<float> prevLayerDeltas) override;
   void update(float learningRate) override;
   void initWeights() override;
+  void setWeights(Matrix<float> weights);
+  void setBiases(Matrix<float> biases);
+  Matrix<float> getWeights();
+  Matrix<float> getBiases();
+  int getInputSize();
+  int getOutputSize();
+  ActivationFunction getActivation();
 };

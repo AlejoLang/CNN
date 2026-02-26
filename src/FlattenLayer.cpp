@@ -36,3 +36,13 @@ Tensor3<float> FlattenLayer::backwards(Tensor3<float> prevLayerDeltas) {
   }
   return output;
 }
+
+int FlattenLayer::getInputWidth() {
+  return this->inputWidth;
+}
+int FlattenLayer::getInputHeight() {
+  return this->inputHeight;
+}
+int FlattenLayer::getInputDepth() {
+  return this->inputDepth;
+}
