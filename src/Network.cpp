@@ -2,6 +2,7 @@
 #include <ConvolutionalLayer.hpp>
 #include <DenseLayer.hpp>
 #include <FlattenLayer.hpp>
+#include <GAP.hpp>
 #include <MaxPoolLayer.hpp>
 #include <Network.hpp>
 #include <fstream>
@@ -17,17 +18,21 @@ Tensor3<float> Network::forward(Tensor3<float> input) {
   for (size_t i = 0; i < this->layers.size(); i++) {
     output = this->layers[i]->forward(output);
   }
+  // Numerically stable softmax: subtract max before exponentiating
+  float maxVal = output.getValue(0, 0, 0);
+  for (size_t i = 1; i < output.getWidth(); i++) {
+    float val = output.getValue(i, 0, 0);
+    if (val > maxVal)
+      maxVal = val;
+  }
   float sum = 0;
   for (size_t i = 0; i < output.getWidth(); i++) {
-    float val = output.getValue(i, 0, 0);
-    val = exp(val);
+    float val = expf(output.getValue(i, 0, 0) - maxVal);
     output.setValue(i, 0, 0, val);
     sum += val;
   }
   for (size_t i = 0; i < output.getWidth(); i++) {
-    float val = output.getValue(i, 0, 0);
-    val /= sum;
-    output.setValue(i, 0, 0, val);
+    output.setValue(i, 0, 0, output.getValue(i, 0, 0) / sum);
   }
   return output;
 }
@@ -112,6 +117,13 @@ void Network::saveWeights(std::string path) {
       file.write(reinterpret_cast<char*>(&inputWidth), sizeof(int));
       file.write(reinterpret_cast<char*>(&inputHeight), sizeof(int));
       file.write(reinterpret_cast<char*>(&inputDepth), sizeof(int));
+    } else if (GAP* gapLayer = dynamic_cast<GAP*>(layer)) {
+      LayerType type = GAP_LAYER;
+      file.write(reinterpret_cast<char*>(&type), sizeof(LayerType));
+      int inputWidth = gapLayer->getInputWidth();
+      int inputHeight = gapLayer->getInputHeight();
+      file.write(reinterpret_cast<char*>(&inputWidth), sizeof(int));
+      file.write(reinterpret_cast<char*>(&inputHeight), sizeof(int));
     } else {
       std::cerr << "Unknown layer type during saveWeights, skipping layer" << std::endl;
     }
@@ -171,6 +183,11 @@ void Network::loadWeights(std::string path) {
       file.read(reinterpret_cast<char*>(&inputDepth), sizeof(int));
       FlattenLayer* flattenLayer = new FlattenLayer(inputWidth, inputHeight, inputDepth);
       this->layers.push_back(flattenLayer);
+    } else if (type == GAP_LAYER) {
+      int inputWidth, inputHeight;
+      file.read(reinterpret_cast<char*>(&inputWidth), sizeof(int));
+      file.read(reinterpret_cast<char*>(&inputHeight), sizeof(int));
+      this->layers.push_back(new GAP(inputWidth, inputHeight));
     } else {
       std::cerr << "Unknown layer type during loadWeights, skipping layer" << std::endl;
     }

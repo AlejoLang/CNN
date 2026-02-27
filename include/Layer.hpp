@@ -2,7 +2,7 @@
 #include <Activations.hpp>
 #include <Tensor3.hpp>
 
-enum LayerType { DENSE, CONVOLUTIONAL, MAXPOOL, FLATTEN };
+enum LayerType { DENSE, CONVOLUTIONAL, MAXPOOL, FLATTEN, GAP_LAYER };
 
 class Layer {
 protected:
