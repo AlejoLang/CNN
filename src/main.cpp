@@ -2,6 +2,7 @@
 #include <ConvolutionalLayer.hpp>
 #include <DenseLayer.hpp>
 #include <FlattenLayer.hpp>
+#include <GAP.hpp>
 #include <MaxPoolLayer.hpp>
 #include <Network.hpp>
 #include <SDL3/SDL.h>
@@ -114,14 +115,48 @@ void load_data(std::string path, std::vector<Tensor3<float>>& images,
   Mat_Close(dataset);
 }
 
-void train_mode(Network& net, const std::vector<Tensor3<float>>& images,
-                const std::vector<Tensor3<float>>& labels, std::string savePath);
-void test_mode(Network& net);
-
 struct TrainItem {
   Tensor3<float> image;
   Tensor3<float> label;
 };
+
+void train_mode(Network& net, const std::vector<Tensor3<float>>& images,
+                const std::vector<Tensor3<float>>& labels, std::string savePath);
+void test_mode(Network& net);
+
+Tensor3<float> augment(const Tensor3<float>& src, std::mt19937& rng) {
+  std::uniform_int_distribution<int> shift_dist(-2, 2);
+  std::uniform_real_distribution<float> zoom_dist(0.9f, 1.1f);
+
+  int dx = shift_dist(rng);
+  int dy = shift_dist(rng);
+  float scale = zoom_dist(rng);
+
+  Tensor3<float> out(28, 28, 1);
+  float cx = 13.5f, cy = 13.5f;
+
+  for (int y = 0; y < 28; y++) {
+    for (int x = 0; x < 28; x++) {
+      float sx = (x - cx) / scale + cx - dx;
+      float sy = (y - cy) / scale + cy - dy;
+
+      int ix = static_cast<int>(std::round(sx));
+      int iy = static_cast<int>(std::round(sy));
+
+      if (ix >= 0 && ix < 28 && iy >= 0 && iy < 28)
+        out.setValue(x, y, 0, const_cast<Tensor3<float>&>(src).getValue(ix, iy, 0));
+    }
+  }
+  return out;
+}
+
+std::vector<TrainItem> augment_dataset(const std::vector<TrainItem>& trainItem, std::mt19937& rng) {
+  std::vector<TrainItem> augmented;
+  for (const auto& item : trainItem) {
+    augmented.push_back({augment(item.image, rng), item.label});
+  }
+  return augmented;
+}
 
 int main(int argc, char* argv[]) {
 
@@ -180,19 +215,13 @@ void train_mode(Network& net, const std::vector<Tensor3<float>>& images,
   std::vector<TrainItem> trainData(samples.begin(), samples.begin() + samples.size() * 0.8);
 
   std::shuffle(trainData.begin(), trainData.end(), rng);
+  trainData = augment_dataset(trainData, rng);
 
-  for (size_t epoch = 0; epoch < 5; epoch++) {
+  for (size_t epoch = 0; epoch < 10; epoch++) {
     float totalLoss = 0.0f;
     // Measure time each 1000 samples
     auto startTime = std::chrono::high_resolution_clock::now();
     for (int i = 0; i < (int)trainData.size(); i++) {
-      if (i % 1000 == 0 && i > 0) {
-        auto endTime = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> elapsed = endTime - startTime;
-        std::cout << "Processed " << i << " samples in " << elapsed.count() << " seconds."
-                  << std::endl;
-        startTime = std::chrono::high_resolution_clock::now();
-      }
       const TrainItem& item = trainData[i];
       Tensor3<float> output = net.forward(item.image);
       net.backwards(output, item.label);
@@ -200,15 +229,23 @@ void train_mode(Network& net, const std::vector<Tensor3<float>>& images,
 
       // Calculate loss (MSE)
       float sampleLoss = 0.0f;
-      for (size_t j = 0; j < output.getChannels(); j++) {
-        float predicted = output.getValue(0, 0, j);
-        float actual = const_cast<Tensor3<float>&>(item.label).getValue(0, 0, j);
+      for (size_t j = 0; j < output.getWidth(); j++) {
+        float predicted = output.getValue(j, 0, 0);
+        float actual = const_cast<Tensor3<float>&>(item.label).getValue(j, 0, 0);
         sampleLoss += (predicted - actual) * (predicted - actual);
       }
       totalLoss += sampleLoss / output.getChannels();
+      if (i % 1000 == 0 && i > 0) {
+        auto endTime = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = endTime - startTime;
+        std::cout << "Processed " << i << " samples in " << elapsed.count() << " seconds. "
+                  << " Sample loss: " << sampleLoss / output.getChannels() << std::endl;
+        startTime = std::chrono::high_resolution_clock::now();
+      }
     }
     std::cout << "Epoch " << epoch + 1 << ", Loss: " << totalLoss / (trainData.size()) << std::endl;
     std::shuffle(trainData.begin(), trainData.end(), rng);
+    trainData = augment_dataset(trainData, rng);
   }
   // Evaluate on test data
   int correct = 0;
@@ -289,10 +326,6 @@ void test_mode(Network& net) {
         if (event.key.key == SDLK_RETURN) {
           uint32_t* pixels = canvas.getBuffer();
           Tensor3<float> input = Tensor3<float>(28, 28, 1);
-          for (size_t i = 0; i < 28 * 28; i++) {
-            std::cout << (pixels[i] ? "X" : " ") << ((i % 28 == 27) ? "\n" : "");
-            input.setValue(i % 28, i / 28, 0, ((pixels[i] >> 24) & 0xFF) / 255.0f);
-          }
           Tensor3<float> output = net.forward(input);
           for (size_t i = 0; i < output.getWidth(); i++) {
             std::cout << i << ": " << std::fixed << std::setprecision(2)
