@@ -164,8 +164,8 @@ int main(int argc, char* argv[]) {
 
   // --test (path to .bin file) or --train(path to .mat file)
   if (argc < 2) {
-    std::cerr << "Usage: " << argv[0] << " --train <path_to_mat_file> OR " << argv[0]
-              << " --test <path_to_bin_file>" << std::endl;
+    std::cerr << "Usage: " << argv[0] << " --train <path_to_mat_file> -O <path_to_save_weights> OR "
+              << argv[0] << " --test <path_to_bin_file>" << std::endl;
     return 1;
   }
   std::string mode = argv[1];
@@ -176,7 +176,11 @@ int main(int argc, char* argv[]) {
     }
     std::vector<Tensor3<float>> images, labels;
     load_data(argv[2], images, labels);
-    train_mode(net, images, labels, "mnist_cnn_weights.bin");
+    std::string savePath = "mnist_cnn_weights.bin";
+    if (argc > 4 && std::string(argv[3]) == "-O") {
+      savePath = argv[4];
+    }
+    train_mode(net, images, labels, savePath);
 
   } else if (mode == "--test") {
     if (argc < 3) {
@@ -326,11 +330,16 @@ void test_mode(Network& net) {
         if (event.key.key == SDLK_RETURN) {
           uint32_t* pixels = canvas.getBuffer();
           Tensor3<float> input = Tensor3<float>(28, 28, 1);
+          for (size_t i = 0; i < 28 * 28; i++) {
+            input.setValue(i % 28, i / 28, 0, (pixels[i] == 0xFFFFFFFF) ? 1.0f : 0.0f);
+          }
+
           Tensor3<float> output = net.forward(input);
           for (size_t i = 0; i < output.getWidth(); i++) {
             std::cout << i << ": " << std::fixed << std::setprecision(2)
                       << output.getValue(i, 0, 0) * 100 << "%" << std::endl;
           }
+          std::cout << std::endl;
           break;
         }
         break;
